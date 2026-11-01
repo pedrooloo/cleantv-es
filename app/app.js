@@ -132,6 +132,8 @@
 
   var BRIDGE = "http://127.0.0.1:8092";
   var bridgeReady = false;
+  var appsSource = "demo";   // "tizen" | "rest" | "directo" | "demo"
+  var appsReason = "";
 
   function bridgeGet(path, timeout, ok, fail) {
     var xhr = new XMLHttpRequest();
@@ -831,6 +833,8 @@
     openPanel("Info");
 
     addPanelRow("Aplicaciones visibles", String(allApps.length), null);
+    addPanelRow("Servicio CleanTV", bridgeReady ? "Conectado" : "Sin respuesta", null);
+    addPanelRow("Origen de la lista", appsSource + (appsReason ? " (" + appsReason + ")" : ""), null);
     addPanelRow("Favoritos", favoriteApps.length + " de " + MAX_FAVORITES, null);
     addPanelRow("Cuadrícula", COLS + " x " + ROWS + " por página", null);
 
@@ -1050,6 +1054,8 @@
 
     bridgeGet("/apps" + (showMessage ? "?refresh=1" : ""), 30000, function (data) {
       loading = false;
+      appsSource = data.source || "?";
+      appsReason = data.reason || "";
 
       var raw = data.apps || [];
       var mapped = [];

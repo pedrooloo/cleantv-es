@@ -14,7 +14,6 @@ var http = require("http");
 var fs = require("fs");
 
 var PORT = 8092;
-var REST = "http://127.0.0.1:8001/api/v2/applications/";
 
 /* Si getAppsInfo no está permitido, se prueban estas apps una a una contra
    la API REST de la tele (puerto 8001). Solo aparecen las que estén
@@ -80,7 +79,13 @@ function parseQuery(url) {
 }
 
 function restRequest(method, appId, cb) {
-  var req = http.request(REST + encodeURIComponent(appId), { method: method }, function (res) {
+  /* Forma (options, callback): la única que entiende el Node antiguo de la tele. */
+  var req = http.request({
+    host: "127.0.0.1",
+    port: 8001,
+    path: "/api/v2/applications/" + encodeURIComponent(appId),
+    method: method
+  }, function (res) {
     var data = "";
     res.on("data", function (c) { data += c; });
     res.on("end", function () {
