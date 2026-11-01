@@ -12,6 +12,7 @@
     tile: 261,             // ancho de cada ficha en px. Menos columnas y la zona
                            // de apps se estrecha, dejando ver más fondo a la derecha
     hideHintsAfter: 9000,  // ms hasta que se oculta la ayuda de abajo (0 = siempre visible)
+    showSystemApps: false, // true enseña también los componentes internos de la tele
     greetName: "",         // nombre en el saludo, p.ej. "Miguel". Vacío = solo "Buenas tardes"
     scenes: true,          // false deja un fondo fijo, sin cambiar con la hora
     wallpaper: "fondo.jpg",// foto propia, p.ej. "fondo.jpg" junto a index.html.
@@ -29,8 +30,8 @@
   var MAX_FAVORITES = CONFIG.maxFavorites;
   var TILE = CONFIG.tile;
 
-  var FAVORITES_KEY = "cleantv.favorites.v4";
-  var FIRST_RUN_KEY = "cleantv.favorites.initialized.v4";
+  var FAVORITES_KEY = "cleantv.favorites.v5";
+  var FIRST_RUN_KEY = "cleantv.favorites.initialized.v5";
 
   var DAYS = ["Domingo", "Lunes", "Martes", "Miércoles",
               "Jueves", "Viernes", "Sábado"];
@@ -487,14 +488,16 @@
     var i, j, name;
 
     for (i = 0; i < CONFIG.preferred.length && chosen.length < MAX_FAVORITES; i++) {
+      var match = -1;
       for (j = 0; j < allApps.length; j++) {
+        if (used[allApps[j].id]) continue;
         name = lower(allApps[j].name);
-        if (!used[allApps[j].id] &&
-            name.indexOf(CONFIG.preferred[i]) !== -1) {
-          chosen.push(allApps[j].id);
-          used[allApps[j].id] = true;
-          break;
-        }
+        if (name === CONFIG.preferred[i]) { match = j; break; }
+        if (match < 0 && name.indexOf(CONFIG.preferred[i]) === 0) match = j;
+      }
+      if (match >= 0) {
+        chosen.push(allApps[match].id);
+        used[allApps[match].id] = true;
       }
     }
 
@@ -974,20 +977,35 @@
      Lista de aplicaciones
      ------------------------------------------------------------------ */
 
+  /* Apps del sistema que sí interesan aunque no vengan de la tienda. */
+  var KEEP_BUILTIN = ["internet", "samsung tv plus", "galería", "gallery",
+                      "smartthings", "samsung health", "multi view"];
+
+  /* Nombres de componentes internos que la tele lista como apps. */
+  var JUNK_NAME = /(widget|popup|privacy|privacidad|dashboard|adplayer|aging|survey|service|daemon|agent|setting|ajuste|manager|installer|launcher|update|debug|test|^app$)/i;
+
+  function isStoreApp(app) {
+    var pkg = safeText(app.packageId) || safeText(app.id).split(".")[0];
+    return /^\d{9,}$/.test(pkg);
+  }
+
   function isLikelyHiddenSystemApp(app) {
     var name = lower(app.name);
-    var id = lower(app.id);
 
     if (!name) return true;
-    if (name.indexOf("com.") === 0) return true;
+    if (name.indexOf("com.") === 0 || name.indexOf("org.") === 0) return true;
+    if (CONFIG.showSystemApps) return false;
 
-    if ((name.indexOf("service") !== -1 || name.indexOf("daemon") !== -1) &&
-        (id.indexOf("service") !== -1 || id.indexOf("daemon") !== -1)) {
-      return true;
+    var i;
+    for (i = 0; i < KEEP_BUILTIN.length; i++) {
+      if (name === KEEP_BUILTIN[i]) return false;
     }
 
-    return false;
+    if (JUNK_NAME.test(name)) return true;
+
+    return !isStoreApp(app);
   }
+
 
   function normalizeApps(apps) {
     var currentId = "";
