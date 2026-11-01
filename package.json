@@ -1,0 +1,20 @@
+{
+  "name": "cleantv-es",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Pantalla de inicio en español para Samsung Tizen a través de TizenBrew.",
+  "packageType": "app",
+  "appName": "CleanTV",
+  "appPath": "app/index.html",
+  "keys": [
+    "ColorF0Red",
+    "ColorF1Green",
+    "ColorF2Yellow",
+    "ColorF3Blue"
+  ],
+  "evaluateScriptOnDocumentStart": false,
+  "files": [
+    "app",
+    "README.md"
+  ]
+}

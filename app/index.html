@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>CleanTV</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="photo"></div>
+  <div id="backdrop"></div>
+
+  <svg id="landscape" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
+    <circle id="sun" class="astro" cx="1520" cy="300" r="82"></circle>
+    <circle id="moon" class="astro" cx="1560" cy="232" r="42"></circle>
+
+    <path class="layerFar" d="M0,520 L0,322 Q240,258 420,300 Q600,342 762,286 Q942,228 1120,292 Q1322,362 1500,300 Q1700,236 1920,296 L1920,520 Z"></path>
+
+    <g class="layerMid">
+      <path d="M0,660 L0,408 Q262,356 482,400 Q722,448 982,396 Q1242,344 1482,404 Q1702,460 1920,398 L1920,660 Z"></path>
+      <g class="trees">
+        <path d="M186,340 l11,22 h-22 Z M186,354 l15,22 h-30 Z"></path>
+        <path d="M250,330 l15,28 h-30 Z M250,348 l19,32 h-38 Z"></path>
+        <path d="M312,342 l13,26 h-26 Z M312,358 l17,28 h-34 Z"></path>
+        <path d="M398,348 l14,26 h-28 Z M398,364 l18,28 h-36 Z"></path>
+      </g>
+    </g>
+
+    <path class="layerNear" d="M0,1080 L0,572 Q302,508 562,564 Q822,620 1082,560 Q1362,496 1622,570 Q1792,612 1920,576 L1920,1080 Z"></path>
+  </svg>
+
+  <div id="scrim"></div>
+  <div id="vignette"></div>
+
+  <main id="shell">
+
+    <header id="topbar">
+      <div class="clockBlock">
+        <div id="greeting">&nbsp;</div>
+        <div id="clock">--:--</div>
+        <div id="date">&nbsp;</div>
+      </div>
+      <nav id="pills" class="pills">
+        <div class="pill" data-pill="inputs"><span class="pillIcon">&#9634;</span><span class="pillText">Entradas</span></div>
+        <div class="pill" data-pill="network"><span class="pillIcon">&#9679;</span><span class="pillText">Red</span></div>
+        <div class="pill" data-pill="info"><span class="pillIcon">&#9432;</span><span class="pillText">Info</span></div>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div id="focusedName">Cargando aplicaciones&hellip;</div>
+      <div id="focusedMeta">&nbsp;</div>
+    </section>
+
+    <section class="section">
+      <div class="sectionHeader">
+        <div class="sectionTitle">Favoritos</div>
+        <div id="favoriteCount" class="sectionMeta"></div>
+      </div>
+      <div id="dock" class="dock">
+        <div id="favorites" class="favorites"></div>
+      </div>
+    </section>
+
+    <section class="section appsSection">
+      <div class="sectionHeader">
+        <div class="sectionTitle">Todas las aplicaciones</div>
+        <div id="pageInfo" class="sectionMeta"></div>
+      </div>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <div id="hints" class="hints">
+      <span><b>OK</b> Abrir</span>
+      <span><b class="kGreen">&#9679;</b> Fijar</span>
+      <span><b class="kRed">&#9679;</b><b class="kBlue">&#9679;</b> Páginas</span>
+      <span><b class="kYellow">&#9679;</b> Actualizar</span>
+      <span><b>ATRÁS</b> Salir</span>
+    </div>
+
+    <div id="panel" class="panel">
+      <div class="panelCard">
+        <div id="panelTitle" class="panelTitle"></div>
+        <div id="panelBody" class="panelBody"></div>
+        <div class="panelFoot">ATRÁS para cerrar</div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

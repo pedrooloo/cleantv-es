@@ -1,0 +1,552 @@
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #0a0705;
+  color: #f8f3ec;
+  font-family: "Samsung One", Arial, Helvetica, sans-serif;
+}
+
+body { position: relative; }
+
+/* ------------------------------------------------------------------
+   Fondo. Un paisaje de colinas dibujado en SVG, con cuatro escenas
+   cálidas que cambian con la hora. La clase la pone app.js en <body>:
+   amanecer, dia, tarde o noche. Cada escena es solo este puñado de
+   colores; cámbialos y cambia el paisaje entero.
+   ------------------------------------------------------------------ */
+
+body.amanecer {
+  --sky-top: #1d1310;
+  --sky-mid: #3d2219;
+  --sky-horizon: #8d5038;
+  --glow: rgba(240,168,116,.30);
+  --astro: #f7c89a;
+  --far: #6b3a2c;
+  --mid: #452319;
+  --tree: #351a12;
+  --near: #24110c;
+  --scrim: 16,9,6;
+}
+
+body.dia {
+  --sky-top: #1a1510;
+  --sky-mid: #352616;
+  --sky-horizon: #936639;
+  --glow: rgba(238,180,108,.26);
+  --astro: #f6d7a6;
+  --far: #6a4b2c;
+  --mid: #43301b;
+  --tree: #33240f;
+  --near: #221810;
+  --scrim: 14,11,7;
+}
+
+body.tarde {
+  --sky-top: #1f110d;
+  --sky-mid: #43190f;
+  --sky-horizon: #a84c28;
+  --glow: rgba(226,126,74,.32);
+  --astro: #f7b183;
+  --far: #74351f;
+  --mid: #4a2013;
+  --tree: #38150c;
+  --near: #250f09;
+  --scrim: 17,7,4;
+}
+
+body.noche {
+  --sky-top: #0d0b09;
+  --sky-mid: #171210;
+  --sky-horizon: #2d231f;
+  --glow: rgba(188,118,72,.13);
+  --astro: #e8dcc6;
+  --far: #241c19;
+  --mid: #1a1412;
+  --tree: #140f0d;
+  --near: #100c0a;
+  --scrim: 8,6,5;
+}
+
+/* foto propia, cuando CONFIG.wallpaper tiene valor */
+
+#photo {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  display: none;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+}
+
+body.conFoto #photo { display: block; }
+
+/* Con foto, las fichas se oscurecen en vez de tapar la foto con un velo:
+   así se sigue viendo lo que hay entre ellas. */
+body.conFoto .tile { background: rgba(16,10,7,.62); }
+body.conFoto .tile.focused { background: rgba(255,232,202,.22); }
+body.conFoto .dock { background: rgba(16,10,7,.34); }
+body.conFoto .initials { background: rgba(255,226,192,.14); }
+body.conFoto .pill { background: rgba(16,10,7,.52); }
+body.conFoto .pill.focused { background: #fdf1e2; }
+
+body.conFoto #scrim {
+  background: linear-gradient(180deg,
+    rgba(var(--scrim), .55) 0%,
+    rgba(var(--scrim), .34) 26%,
+    rgba(var(--scrim), .20) 54%,
+    rgba(var(--scrim), .26) 100%);
+}
+body.conFoto #landscape { display: none; }
+
+/* sobre la foto, el cielo pintado sobra: queda solo la luz cálida de la hora */
+body.conFoto #backdrop {
+  background: radial-gradient(860px 560px at 78% 26%, var(--glow), transparent 70%);
+}
+
+/* cielo */
+
+#backdrop {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(760px 520px at 79% 28%, var(--glow), transparent 68%),
+    linear-gradient(180deg,
+      var(--sky-top) 0%,
+      var(--sky-mid) 17%,
+      var(--sky-horizon) 30%,
+      var(--sky-mid) 42%,
+      var(--sky-top) 62%);
+  transition: background 2s ease-in-out;
+}
+
+/* colinas */
+
+#landscape {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#landscape path,
+#landscape circle { transition: fill 2s ease-in-out; }
+
+.layerFar { fill: var(--far); }
+.layerMid > path { fill: var(--mid); }
+.trees path { fill: var(--tree); }
+.layerNear { fill: var(--near); }
+.astro { fill: var(--astro); }
+
+#moon { display: none; }
+body.noche #sun { display: none; }
+body.noche #moon { display: block; }
+
+/* oscurece la mitad de abajo para que el dock y las apps se lean */
+
+#scrim {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(var(--scrim), 0) 0%,
+    rgba(var(--scrim), 0) 20%,
+    rgba(var(--scrim), .42) 30%,
+    rgba(var(--scrim), .78) 42%,
+    rgba(var(--scrim), .90) 58%,
+    rgba(var(--scrim), .94) 100%);
+  transition: background 2s ease-in-out;
+}
+
+#vignette {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: radial-gradient(136% 118% at 50% 36%, transparent 48%, rgba(8,4,3,.56) 100%);
+  pointer-events: none;
+}
+
+#shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 44px 84px 30px;
+}
+
+/* ------------------------------------------------------------------
+   Barra superior
+   ------------------------------------------------------------------ */
+
+#topbar {
+  height: 104px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+#greeting {
+  font-size: 23px;
+  font-weight: 400;
+  color: rgba(255,228,196,.62);
+  letter-spacing: -.012em;
+}
+
+#clock {
+  margin-top: 6px;
+  font-size: 52px;
+  font-weight: 300;
+  letter-spacing: -.045em;
+  line-height: 1;
+  color: rgba(255,246,236,.96);
+}
+
+#date {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(255,232,206,.42);
+}
+
+.pills {
+  display: flex;
+  align-items: center;
+  padding-top: 24px;
+}
+
+.pill {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  margin-left: 14px;
+  padding: 0 24px;
+  border-radius: 28px;
+  background: rgba(255,228,196,.075);
+  border: 2px solid rgba(255,228,196,.10);
+  font-size: 19px;
+  color: rgba(255,240,224,.80);
+  transition: background .09s ease-out, border-color .09s ease-out, color .09s ease-out;
+}
+
+.pill.focused {
+  background: #fdf1e2;
+  border-color: #fdf1e2;
+  color: #2a1710;
+}
+
+.pillIcon {
+  margin-right: 11px;
+  font-size: 17px;
+  opacity: .80;
+}
+
+/* ------------------------------------------------------------------
+   App enfocada
+   ------------------------------------------------------------------ */
+
+.hero {
+  height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+#focusedName {
+  max-width: 1420px;
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255,247,238,.97);
+}
+
+#focusedMeta {
+  margin-top: 10px;
+  font-size: 18px;
+  color: rgba(255,230,202,.40);
+}
+
+/* ------------------------------------------------------------------
+   Secciones
+   ------------------------------------------------------------------ */
+
+.section { margin-top: 4px; }
+.appsSection { margin-top: 18px; }
+
+.sectionHeader {
+  width: 1126px;
+  max-width: 100%;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+}
+
+.sectionTitle {
+  font-size: 21px;
+  font-weight: 500;
+  color: rgba(255,243,230,.86);
+}
+
+.sectionMeta {
+  font-size: 16px;
+  color: rgba(255,230,202,.36);
+}
+
+/* ------------------------------------------------------------------
+   Dock de favoritos
+   ------------------------------------------------------------------ */
+
+.dock {
+  height: 178px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 20px;
+  border-radius: 30px;
+  background: rgba(255,226,192,.05);
+  border: 1px solid rgba(255,226,192,.075);
+}
+
+.favorites {
+  height: 138px;
+  display: flex;
+  align-items: center;
+}
+
+.favorites .tile {
+  width: 258px;
+  flex: 0 0 258px;
+  height: 138px;
+  margin-right: 18px;
+  border-radius: 22px;
+}
+
+.favorites .tile:last-child { margin-right: 0; }
+.favorites .iconWrap { height: 92px; }
+
+/* ------------------------------------------------------------------
+   Cuadrícula
+   ------------------------------------------------------------------ */
+
+.grid {
+  height: 452px;
+  display: grid;
+  justify-content: start;
+  grid-column-gap: 18px;
+  grid-row-gap: 19px;
+  padding: 6px;
+}
+
+/* ------------------------------------------------------------------
+   Fichas
+   ------------------------------------------------------------------ */
+
+.tile {
+  position: relative;
+  width: 100%;
+  height: 138px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255,226,192,.06);
+  border: 2px solid rgba(255,226,192,.075);
+  transform: scale(1);
+  transition: transform .10s ease-out,
+              border-color .10s ease-out,
+              background .10s ease-out;
+}
+
+.tile.focused {
+  z-index: 5;
+  transform: scale(1.06);
+  background: rgba(255,232,202,.17);
+  border-color: rgba(253,232,208,.94);
+}
+
+.tile.favoriteMark:after {
+  content: "\2605";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 17px;
+  color: rgba(255,198,112,.90);
+}
+
+.iconWrap {
+  height: 94px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile img {
+  max-width: 64%;
+  max-height: 66px;
+  object-fit: contain;
+}
+
+.initials {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 17px;
+  background: rgba(255,226,192,.11);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -.04em;
+  color: rgba(255,243,230,.90);
+}
+
+.label {
+  height: 30px;
+  padding: 0 14px;
+  text-align: center;
+  font-size: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255,240,224,.78);
+}
+
+.tile.focused .label { color: rgba(255,250,244,.98); }
+
+.emptyFavorites {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255,226,192,.14);
+  border-radius: 20px;
+  color: rgba(255,230,202,.34);
+  font-size: 18px;
+}
+
+/* ------------------------------------------------------------------
+   Ayuda de las teclas, se desvanece
+   ------------------------------------------------------------------ */
+
+.hints {
+  position: absolute;
+  left: 84px;
+  right: 84px;
+  bottom: 20px;
+  display: flex;
+  justify-content: center;
+  font-size: 14px;
+  color: rgba(255,230,202,.28);
+  opacity: 1;
+  transition: opacity .4s ease-out;
+}
+
+.hints.hidden { opacity: 0; }
+.hints span { margin-right: 26px; }
+.hints span:last-child { margin-right: 0; }
+.hints b { color: rgba(255,240,224,.56); font-weight: 500; }
+.hints .kGreen { color: #6cc98a; }
+.hints .kRed { color: #e8705f; }
+.hints .kBlue { color: #6ba5d8; }
+.hints .kYellow { color: #e8bd5c; }
+
+/* ------------------------------------------------------------------
+   Panel
+   ------------------------------------------------------------------ */
+
+.panel {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,5,3,.82);
+}
+
+.panel.open { display: flex; }
+
+.panelCard {
+  width: 760px;
+  max-height: 740px;
+  padding: 40px 44px 30px;
+  border-radius: 28px;
+  background: #1c120d;
+  border: 1px solid rgba(255,226,192,.14);
+}
+
+.panelTitle {
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -.03em;
+  color: rgba(255,247,238,.96);
+}
+
+.panelBody {
+  margin-top: 26px;
+  font-size: 20px;
+  line-height: 1.55;
+  color: rgba(255,240,224,.80);
+}
+
+.panelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 62px;
+  padding: 0 20px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  background: rgba(255,226,192,.06);
+  border: 2px solid rgba(255,226,192,.075);
+  transition: background .09s ease-out, border-color .09s ease-out, color .09s ease-out;
+}
+
+.panelRow.focused {
+  background: #fdf1e2;
+  border-color: #fdf1e2;
+  color: #2a1710;
+}
+
+.panelRow .rowMeta { font-size: 17px; opacity: .60; }
+.panelRow.focused .rowMeta { opacity: .70; }
+
+.panelNote {
+  margin-top: 6px;
+  font-size: 17px;
+  color: rgba(255,230,202,.44);
+}
+
+.panelFoot {
+  margin-top: 24px;
+  font-size: 15px;
+  color: rgba(255,230,202,.30);
+}
+
+/* ------------------------------------------------------------------
+   Aviso
+   ------------------------------------------------------------------ */
+
+#toast {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  transform: translateX(-50%);
+  max-width: 1100px;
+  padding: 14px 24px;
+  border-radius: 16px;
+  background: rgba(28,18,13,.97);
+  border: 1px solid rgba(255,226,192,.16);
+  font-size: 18px;
+  color: rgba(255,243,230,.92);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease-out;
+}
+
+#toast.show { opacity: 1; }
