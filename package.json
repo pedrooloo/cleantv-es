@@ -1,6 +1,6 @@
 {
   "name": "cleantv-es",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "Pantalla de inicio en español para Samsung Tizen a través de TizenBrew.",
   "packageType": "app",

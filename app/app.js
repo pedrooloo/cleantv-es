@@ -135,6 +135,7 @@
   var bridgeReady = false;
   var appsSource = "demo";   // "tizen" | "rest" | "directo" | "demo"
   var appsReason = "";
+  var hiddenCount = 0;
 
   function bridgeGet(path, timeout, ok, fail) {
     var xhr = new XMLHttpRequest();
@@ -836,6 +837,7 @@
     openPanel("Info");
 
     addPanelRow("Aplicaciones visibles", String(allApps.length), null);
+    addPanelRow("Ocultas (sistema)", String(hiddenCount), null);
     addPanelRow("Servicio CleanTV", bridgeReady ? "Conectado" : "Sin respuesta", null);
     addPanelRow("Origen de la lista", appsSource + (appsReason ? " (" + appsReason + ")" : ""), null);
     addPanelRow("Favoritos", favoriteApps.length + " de " + MAX_FAVORITES, null);
@@ -984,28 +986,26 @@
   /* Nombres de componentes internos que la tele lista como apps. */
   var JUNK_NAME = /(widget|popup|privacy|privacidad|dashboard|adplayer|aging|survey|service|daemon|agent|setting|ajuste|manager|installer|launcher|update|debug|test|^app$)/i;
 
-  function isStoreApp(app) {
-    var pkg = safeText(app.packageId) || safeText(app.id).split(".")[0];
-    return /^\d{9,}$/.test(pkg);
-  }
-
+  /* Solo se ocultan nombres que claramente son piezas internas. Mejor que
+     sobre alguna app rara a que falte una de verdad: muchas apps de la
+     tienda tienen IDs con letras (YouTube, Disney+…), no solo números. */
   function isLikelyHiddenSystemApp(app) {
     var name = lower(app.name);
+    var i;
 
     if (!name) return true;
-    if (name.indexOf("com.") === 0 || name.indexOf("org.") === 0) return true;
     if (CONFIG.showSystemApps) return false;
 
-    var i;
     for (i = 0; i < KEEP_BUILTIN.length; i++) {
       if (name === KEEP_BUILTIN[i]) return false;
     }
 
+    if (name.indexOf("com.") === 0 || name.indexOf("org.") === 0) return true;
+    if (name === lower(app.id)) return true;   // sin nombre de verdad
     if (JUNK_NAME.test(name)) return true;
 
-    return !isStoreApp(app);
+    return false;
   }
-
 
   function normalizeApps(apps) {
     var currentId = "";
@@ -1015,6 +1015,8 @@
 
     var seen = {};
     var out = [];
+    var all = [];
+    hiddenCount = 0;
     var i, app, info;
 
     for (i = 0; i < apps.length; i++) {
@@ -1031,10 +1033,16 @@
         packageId: app.packageId || ""
       };
 
-      if (isLikelyHiddenSystemApp(info)) continue;
-
       seen[app.id] = true;
+      all.push(info);
+      if (isLikelyHiddenSystemApp(info)) { hiddenCount++; continue; }
       out.push(info);
+    }
+
+    /* Red de seguridad: si el filtro deja casi nada, se enseña todo. */
+    if (out.length < 3 && all.length > out.length) {
+      out = all;
+      hiddenCount = 0;
     }
 
     out.sort(function (a, b) {
