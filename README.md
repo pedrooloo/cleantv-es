@@ -27,6 +27,14 @@ Probado sobre: Samsung UE75AU7175 (2021), Tizen 6.0, TizenBrew 2.x.
 - Samsung TV Plus entre las apps que se fijan solas en el dock la primera vez.
 - Panel de entradas que lista las fuentes HDMI conectadas con el nombre que da la tele, y las cambia cuando el televisor lo permite.
 
+## Cómo habla con la tele
+
+TizenBrew sirve la página desde `http://127.0.0.1:8081`, y en ese origen la tele no
+expone el objeto `tizen`. Por eso el módulo trae un servicio (`service.js`) que sí tiene
+acceso a la API: escucha en `127.0.0.1:8092` y la página le pide por HTTP la lista de apps,
+los iconos, abrir una app y los datos de red y entradas. Si el servicio no responde,
+CleanTV arranca en modo demo.
+
 ## Teclas del mando
 
 | Tecla | Qué hace |

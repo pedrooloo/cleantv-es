@@ -29,8 +29,8 @@
   var MAX_FAVORITES = CONFIG.maxFavorites;
   var TILE = CONFIG.tile;
 
-  var FAVORITES_KEY = "cleantv.favorites.v3";
-  var FIRST_RUN_KEY = "cleantv.favorites.initialized.v3";
+  var FAVORITES_KEY = "cleantv.favorites.v4";
+  var FIRST_RUN_KEY = "cleantv.favorites.initialized.v4";
 
   var DAYS = ["Domingo", "Lunes", "Martes", "Miércoles",
               "Jueves", "Viernes", "Sábado"];
@@ -120,6 +120,57 @@
       }
     } catch (e) {}
     return false;
+  }
+
+  /* ------------------------------------------------------------------
+     Puente con el servicio (service.js)
+
+     TizenBrew sirve esta página desde http://127.0.0.1:8081 y ahí la tele
+     no expone `tizen`. El servicio del módulo sí lo tiene, así que la
+     página le pide las cosas por HTTP.
+     ------------------------------------------------------------------ */
+
+  var BRIDGE = "http://127.0.0.1:8092";
+  var bridgeReady = false;
+
+  function bridgeGet(path, timeout, ok, fail) {
+    var xhr = new XMLHttpRequest();
+    var done = false;
+
+    function finish(fn, arg) {
+      if (done) return;
+      done = true;
+      fn(arg);
+    }
+
+    try {
+      xhr.open("GET", BRIDGE + path, true);
+      xhr.timeout = timeout;
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4) return;
+        var data = null;
+        try { data = JSON.parse(xhr.responseText); } catch (e) {}
+        if (xhr.status >= 200 && xhr.status < 300 && data) finish(ok, data);
+        else finish(fail, { status: xhr.status, data: data });
+      };
+      xhr.ontimeout = function () { finish(fail, { status: 0, data: null }); };
+      xhr.onerror = function () { finish(fail, { status: 0, data: null }); };
+      xhr.send();
+    } catch (e) {
+      finish(fail, { status: 0, data: null });
+    }
+  }
+
+  /* El servicio arranca a la vez que la página, así que se reintenta
+     unas cuantas veces antes de rendirse. */
+  function waitForBridge(attempt, ok, fail) {
+    bridgeGet("/ping", 1500, function () {
+      bridgeReady = true;
+      ok();
+    }, function () {
+      if (attempt >= 12) { fail(); return; }
+      setTimeout(function () { waitForBridge(attempt + 1, ok, fail); }, 600);
+    });
   }
 
   function sceneFor(hour) {
@@ -530,6 +581,14 @@
     var app = currentApp();
     if (!app) return;
 
+    if (bridgeReady) {
+      bridgeGet("/launch?id=" + encodeURIComponent(app.id), 8000, function () {}, function (err) {
+        var msg = err && err.data && err.data.error;
+        toast("No se ha podido abrir " + app.name + (msg ? ": " + msg : ""));
+      });
+      return;
+    }
+
     if (!(window.tizen && tizen.application && tizen.application.launch)) {
       toast("La API de aplicaciones de Tizen no está disponible");
       return;
@@ -641,6 +700,24 @@
   function openInputs() {
     openPanel("Entradas");
 
+    if (bridgeReady && !hasTizen("sysinfo")) {
+      bridgeGet("/sources", 4000, function (info) {
+        if (!panelOpen) return;
+        var list = info.connected || [];
+        var i;
+        for (i = 0; i < list.length; i++) {
+          addPanelRow(sourceLabel(list[i]), safeText(list[i].name) || "Conectado", null);
+        }
+        if (!list.length) addPanelNote("No hay ninguna fuente conectada ahora mismo.");
+        addPanelNote("Para cambiar de entrada usa el botón Fuente del mando: desde TizenBrew no se puede.");
+        panelFocus();
+      }, function () {
+        if (!panelOpen) return;
+        addPanelNote("No se ha podido leer la lista de entradas.");
+      });
+      return;
+    }
+
     if (!hasTizen("sysinfo")) {
       addPanelNote("No se puede leer la lista de entradas: la API de Tizen no está disponible.");
       return;
@@ -686,6 +763,33 @@
 
   function openNetwork() {
     openPanel("Red");
+
+    if (bridgeReady && !hasTizen("sysinfo")) {
+      bridgeGet("/network", 4000, function (info) {
+        if (!panelOpen) return;
+        var wifi = info.wifi;
+        var eth = info.ethernet;
+
+        if (wifi && wifi.status === "ON") {
+          addPanelRow("Conexión", "Wi-Fi", null);
+          addPanelRow("Red", safeText(wifi.ssid) || "—", null);
+          addPanelRow("Señal", wifi.signalStrength
+            ? Math.round(Number(wifi.signalStrength) * 100) + "%" : "—", null);
+          addPanelRow("Dirección IP", safeText(wifi.ipAddress) || "—", null);
+        } else if (eth && eth.ipAddress) {
+          addPanelRow("Conexión", "Cable", null);
+          addPanelRow("Dirección IP", safeText(eth.ipAddress), null);
+        } else {
+          addPanelNote("No se ha podido leer la conexión.");
+        }
+        addPanelNote("Para cambiar de red, usa los ajustes de la tele.");
+        panelFocus();
+      }, function () {
+        if (!panelOpen) return;
+        addPanelNote("No se ha podido leer la red.");
+      });
+      return;
+    }
 
     if (!hasTizen("sysinfo")) {
       addPanelNote("No se puede leer la red: la API de Tizen no está disponible.");
@@ -737,6 +841,20 @@
         model = webapis.productinfo.getRealModel();
       }
     } catch (e) {}
+
+    if (model === "—" && bridgeReady) {
+      bridgeGet("/info", 3000, function (info) {
+        if (!panelOpen || !info.model) return;
+        var rows = panelBodyEl.querySelectorAll(".panelRow");
+        var i;
+        for (i = 0; i < rows.length; i++) {
+          if (rows[i].textContent.indexOf("Modelo") === 0) {
+            var val = rows[i].lastChild;
+            if (val) val.textContent = info.model;
+          }
+        }
+      }, function () {});
+    }
 
     addPanelRow("Modelo", model, null);
     addPanelNote("Los ajustes de la tele se abren con el botón del mando: Tizen no deja abrirlos desde una app web.");
@@ -915,6 +1033,62 @@
     focusedNameEl.textContent = "Leyendo aplicaciones…";
     focusedMetaEl.textContent = "";
 
+    if (bridgeReady) {
+      loadAppsFromBridge(showMessage);
+      return;
+    }
+
+    waitForBridge(0, function () {
+      loadAppsFromBridge(showMessage);
+    }, function () {
+      loadAppsDirect(showMessage);
+    });
+  }
+
+  function loadAppsFromBridge(showMessage) {
+    focusedNameEl.textContent = "Leyendo aplicaciones…";
+
+    bridgeGet("/apps" + (showMessage ? "?refresh=1" : ""), 30000, function (data) {
+      loading = false;
+
+      var raw = data.apps || [];
+      var mapped = [];
+      var i;
+      for (i = 0; i < raw.length; i++) {
+        mapped.push({
+          id: raw[i].id,
+          name: raw[i].name,
+          packageId: raw[i].packageId || "",
+          iconPath: raw[i].hasIcon
+            ? BRIDGE + "/icon?id=" + encodeURIComponent(raw[i].id)
+            : ""
+        });
+      }
+
+      allApps = normalizeApps(mapped);
+      ensureFavorites();
+
+      if (page >= pageCount()) page = pageCount() - 1;
+      if (page < 0) page = 0;
+
+      renderAll(false);
+
+      if (showMessage) {
+        toast("Lista actualizada: " + allApps.length + " apps");
+      }
+
+      if (!allApps.length) {
+        toast("No se ha encontrado ninguna app");
+      }
+    }, function (err) {
+      loading = false;
+      var msg = err && err.data && err.data.error;
+      toast("No se ha podido leer la lista de apps" + (msg ? ": " + msg : ""));
+      renderAll(false);
+    });
+  }
+
+  function loadAppsDirect(showMessage) {
     if (!hasTizen("app")) {
       loading = false;
 
@@ -928,10 +1102,10 @@
         { id: "demo.internet", name: "Internet", iconPath: "" }
       ];
 
-      ensureFavorites();
+      favoriteIds = defaultFavorites();
       page = 0;
       renderAll(false);
-      toast("Modo demo: no se encuentra la API de Tizen");
+      toast("Modo demo: no responde el servicio de CleanTV");
       return;
     }
 
